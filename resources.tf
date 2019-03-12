@@ -100,17 +100,7 @@ resource "cloudca_instance" "master_instance" {
   cpu_count = "${var.master_vcpu_count}"
   memory_in_mb = "${var.master_ram_in_mb}"
   root_volume_size_in_gb = "${var.master_root_volume_size_in_gb}"
-  user_data = "${data.template_file.master_vm_config.rendered}"
-}
-
-# The application install details defined in 'cloudinit'
-data "template_file" "master_vm_config" {
-  template = "${file("templates/vm_config.tpl")}"
-
-  vars {
-    public_key = "${replace(tls_private_key.ssh_key.public_key_openssh, "\n", "")}"
-    username   = "${var.username}"
-  }
+  user_data = "${data.template_file.vm_config.rendered}"
 }
 
 # Worker instances for the demo
@@ -124,11 +114,11 @@ resource "cloudca_instance" "worker_instance" {
   cpu_count = "${var.worker_vcpu_count}"
   memory_in_mb = "${var.worker_ram_in_mb}"
   root_volume_size_in_gb = "${var.worker_root_volume_size_in_gb}"
-  user_data = "${data.template_file.worker_vm_config.rendered}"
+  user_data = "${data.template_file.vm_config.rendered}"
 }
 
 # The application install details defined in 'cloudinit'
-data "template_file" "worker_vm_config" {
+data "template_file" "vm_config" {
   template = "${file("templates/vm_config.tpl")}"
 
   vars {
@@ -156,7 +146,7 @@ resource "cloudca_port_forwarding_rule" "master_ssh_pfr" {
   private_port_start = "22"
   protocol = "TCP"
 }
-output "ssh to masters" {
+output "master =>" {
   value = "ssh ${var.username}@${cloudca_public_ip.master_public_ip.ip_address} -i ./terraform.tfstate.d/${terraform.workspace}/id_rsa"
 }
 
@@ -168,7 +158,7 @@ resource "cloudca_port_forwarding_rule" "worker_ssh_pfr" {
   private_port_start = "22"
   protocol = "TCP"
 }
-output "ssh to workers" {
+output "worker =>" {
   value = "ssh ${var.username}@${cloudca_public_ip.worker_public_ip.ip_address} -i ./terraform.tfstate.d/${terraform.workspace}/id_rsa"
 }
 

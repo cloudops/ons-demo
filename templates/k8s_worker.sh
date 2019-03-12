@@ -21,7 +21,7 @@ then
       exit 1
 fi
 
-echo "K8S Worker with token: $2"
+echo "Setting up K8S Worker with token: $2"
 
 K8S_MASTER_IP=$1
 TOKEN=$2

@@ -33,7 +33,7 @@ then
       TOKEN="--token $4"
 fi
 
-echo "K8S Master with token: $4"
+echo "Setting up K8S Master with token: $4"
 
 K8S_MASTER_IP=$1
 VROUTER_GATEWAY=$2
@@ -80,7 +80,7 @@ sudo systemctl disable firewalld
 
 echo "source <(kubectl completion bash)" >> $HOME/.bashrc
 
-sleep 30
+sleep 5
 
 sudo kubeadm init --apiserver-cert-extra-sans $K8S_MASTER_IP $TOKEN >> $HOME/kubeadm_init.log
 ## uncomment to change the default `pod` and `service` networks
