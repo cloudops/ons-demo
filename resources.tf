@@ -92,7 +92,7 @@ resource "cloudca_network" "demo_network" {
 # Master instances for the demo
 resource "cloudca_instance" "master_instance" {
   # remove non-alphanumeric chars from the email address so it works as a VM name in CCA
-  name = "k8s-master-${count.index}"
+  name = "k8s-master"
   environment_id = "${cloudca_environment.demo_env.id}"
   network_id = "${cloudca_network.demo_network.id}"
   template = "${var.template}"
@@ -116,7 +116,7 @@ data "template_file" "master_vm_config" {
 # Worker instances for the demo
 resource "cloudca_instance" "worker_instance" {
   # remove non-alphanumeric chars from the email address so it works as a VM name in CCA
-  name = "k8s-worker-${count.index}"
+  name = "k8s-worker"
   environment_id = "${cloudca_environment.demo_env.id}"
   network_id = "${cloudca_network.demo_network.id}"
   template = "${var.template}"
