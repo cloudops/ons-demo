@@ -89,9 +89,8 @@ resource "cloudca_network" "demo_network" {
   network_acl = "default_allow"
 }
 
-# Master instances for the demo
+# Master instance for the demo
 resource "cloudca_instance" "master_instance" {
-  # remove non-alphanumeric chars from the email address so it works as a VM name in CCA
   name = "k8s-master"
   environment_id = "${cloudca_environment.demo_env.id}"
   network_id = "${cloudca_network.demo_network.id}"
@@ -103,9 +102,8 @@ resource "cloudca_instance" "master_instance" {
   user_data = "${data.template_file.vm_config.rendered}"
 }
 
-# Worker instances for the demo
+# Worker instance for the demo
 resource "cloudca_instance" "worker_instance" {
-  # remove non-alphanumeric chars from the email address so it works as a VM name in CCA
   name = "k8s-worker"
   environment_id = "${cloudca_environment.demo_env.id}"
   network_id = "${cloudca_network.demo_network.id}"
@@ -208,6 +206,7 @@ resource "null_resource" "master_instance_setup" {
 
 resource "null_resource" "worker_instance_setup" {
   depends_on = ["null_resource.master_instance_setup"]
+
   # when an instance changes
   triggers {
     worker = "${cloudca_instance.worker_instance.id}"
