@@ -9,6 +9,7 @@
 # RAM: 32GB
 # Root Drive: 60GB
 
+## CLI ARGS AND VAR INIT
 if [ -z "$1" ]
 then
       echo "Missing 'master' private IP as first argument..."
@@ -39,6 +40,7 @@ K8S_MASTER_IP=$1
 VROUTER_GATEWAY=$2
 TF_REPO="docker.io\/opencontrailnightly"
 
+## SETUP PACKAGES AND SERVICES
 swapoff -a
 sudo setenforce 0
 sudo sed -i 's/^SELINUX=.*/SELINUX=disabled/g' /etc/selinux/config
@@ -56,6 +58,8 @@ EOF
 
 ## just in case your template is ancient
 #sudo yum update -y
+
+sudo yum install -y git
 
 sudo yum install -y ntp ntpdate
 sudo ntpdate pool.ntp.org
@@ -82,6 +86,7 @@ echo "source <(kubectl completion bash)" >> $HOME/.bashrc
 
 sleep 5
 
+## INSTALL KUBERNETES
 sudo kubeadm init --apiserver-cert-extra-sans $K8S_MASTER_IP $TOKEN >> $HOME/kubeadm_init.log
 ## uncomment to change the default `pod` and `service` networks
 #sudo kubeadm init --apiserver-cert-extra-sans $K8S_MASTER_IP $TOKEN --pod-network-cidr "10.48.0.0/12" --service-cidr "10.112.0.0/12" >> $HOME/kubeadm_init.log
@@ -90,6 +95,7 @@ mkdir -p $HOME/.kube
 sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
 sudo chown $USER:$USER $HOME/.kube/config
 
+## INSTALL TUNGSTEN FABRIC
 sudo mkdir -pm 777 /var/lib/contrail/kafka-logs
 curl https://raw.githubusercontent.com/Juniper/contrail-kubernetes-docs/master/install/kubernetes/templates/contrail-single-step-cni-install-centos.yaml | sed "s/{{ K8S_MASTER_IP }}/$K8S_MASTER_IP/g; s/{{ CONTRAIL_REPO }}/$TF_REPO/g; s/{{ CONTRAIL_RELEASE }}/$TF_RELEASE/g" >> tf.yaml
 

@@ -102,6 +102,14 @@ resource "cloudca_instance" "master_instance" {
   user_data = "${data.template_file.vm_config.rendered}"
 }
 
+resource "cloudca_volume" "k8s_data_volume" {
+    environment_id = "${cloudca_environment.demo_env.id}"
+    name = "K8S PV Data Volume"
+    disk_offering = "Performance, No QoS"
+    size_in_gb = 10
+    instance_id = "${cloudca_instance.worker_instance.id}"
+}
+
 # Worker instance for the demo
 resource "cloudca_instance" "worker_instance" {
   name = "k8s-worker"
@@ -205,7 +213,7 @@ resource "null_resource" "master_instance_setup" {
 }
 
 resource "null_resource" "worker_instance_setup" {
-  depends_on = ["null_resource.master_instance_setup"]
+  depends_on = ["null_resource.master_instance_setup", "cloudca_volume.k8s_data_volume"]
 
   # when an instance changes
   triggers {
@@ -231,9 +239,14 @@ resource "null_resource" "worker_instance_setup" {
     destination = "/home/${var.username}/k8s_worker.sh"
   }
 
-  # make the script executable
+  # - partition, make fs and mount the data drive (for consul)
+  # - make the k8s_worker script executable and run it
   provisioner "remote-exec" {
     inline = [
+      "sudo mkdir /data",
+      "sudo mkfs.ext4 /dev/xvdb",
+      "echo '/dev/xvdb    /data    ext4    defaults    0 2' | sudo tee -a /etc/fstab",
+      "sudo mount -a",
       "chmod +x /home/${var.username}/k8s_worker.sh",
       "./k8s_worker.sh ${cloudca_instance.master_instance.private_ip} '${local.token}'"
     ]
@@ -243,6 +256,52 @@ resource "null_resource" "worker_instance_setup" {
   connection {
     type        = "ssh"
     host        = "${cloudca_public_ip.worker_public_ip.ip_address}"
+    user        = "${var.username}"
+    private_key = "${tls_private_key.ssh_key.private_key_pem}"
+    port        = "22"
+  }
+}
+
+# Finish the install of charts, etc...
+resource "null_resource" "master_finalize_setup" {
+  depends_on = ["null_resource.worker_instance_setup"]
+
+  # when an instance changes
+  triggers {
+    master = "${cloudca_instance.master_instance.id}"
+  }
+
+  # copy the files in place
+  provisioner "file" {
+    source      = "templates/local_storage_pv.yaml"
+    destination = "/home/${var.username}/local_storage_pv.yaml"
+  }
+
+  # Setup a Local Storage PV, Install Helm, Init Helm, Get and Install Consul
+  provisioner "remote-exec" {
+    inline = [
+      "kubectl create -f local_storage_pv.yaml",
+      "curl https://raw.githubusercontent.com/helm/helm/master/scripts/get | bash",
+      "kubectl create serviceaccount --namespace kube-system tiller",
+      "kubectl create clusterrolebinding tiller-cluster-rule --clusterrole=cluster-admin --serviceaccount=kube-system:tiller",
+      "helm init --service-account tiller --history-max 200",
+      "git clone https://github.com/hashicorp/consul-helm.git",
+      "cd consul-helm",
+      "git checkout v0.6.0",
+      "sed -i 's/replicas: 3/replicas: 1/g' values.yaml",
+      "sed -i 's/bootstrapExpect: 3 # Should <= replicas count/bootstrapExpect: 1/g' values.yaml",
+      "sed -i 's/maxUnavailable: null/maxUnavailable: 1/g' values.yaml",
+      "sed -i 's/storageClass: null/storageClass: local-storage/g' values.yaml",
+      "sleep 5",
+      "while [ \"$(kubectl get pods -l name=tiller -n kube-system -o 'jsonpath={.items[0].status.conditions[?(@.type==\"Ready\")].status}')\" != 'True' ]; do echo 'waiting for tiller...'; sleep 2; done",
+      "helm install ./"
+    ]
+  }
+
+  # the ssh connection details for this null resource
+  connection {
+    type        = "ssh"
+    host        = "${cloudca_public_ip.master_public_ip.ip_address}"
     user        = "${var.username}"
     private_key = "${tls_private_key.ssh_key.private_key_pem}"
     port        = "22"
