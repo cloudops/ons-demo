@@ -95,14 +95,30 @@ mkdir -p $HOME/.kube
 sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
 sudo chown $USER:$USER $HOME/.kube/config
 
-## INSTALL TUNGSTEN FABRIC
+# ## INSTALL TUNGSTEN FABRIC
+# sudo mkdir -pm 777 /var/lib/contrail/kafka-logs
+# curl https://raw.githubusercontent.com/Juniper/contrail-kubernetes-docs/master/install/kubernetes/templates/contrail-single-step-cni-install-centos.yaml | sed "s/{{ K8S_MASTER_IP }}/$K8S_MASTER_IP/g; s/{{ CONTRAIL_REPO }}/$TF_REPO/g; s/{{ CONTRAIL_RELEASE }}/$TF_RELEASE/g" >> tf.yaml
+
+# ## change the `VROUTER_GATEWAY` to the underly gateway or network connectivity to the master will be lost
+# sed -i "s/VROUTER_GATEWAY: $K8S_MASTER_IP/VROUTER_GATEWAY: $VROUTER_GATEWAY/g" tf.yaml
+
+# ## uncomment to change the default `pod` and `service` networks
+# #sed -i 's|KUBERNETES_API_SECURE_PORT: "6443"|KUBERNETES_API_SECURE_PORT: "6443"\n  KUBERNETES_POD_SUBNETS: 10.48.0.0/12\n  KUBERNETES_SERVICE_SUBNETS: 10.112.0.0/12\n  KUBERNETES_IP_FABRIC_SUBNETS: 10.80.0.0/12|g' tf.yaml
+
+# kubectl apply -f tf.yaml
+
+# # --- New TF Install Process --- #
+# sleep 300
+# git clone https://github.com/Juniper/contrail-container-builder.git
+# cd contrail-container-builder/kubernetes/manifests/
+# bash resolve-manifest.sh contrail-standalone-kubernetes.yaml >> $HOME/tf.yaml
+# cd $HOME
+# kubectl apply -f tf.yaml
+
+# --- Manually fixed issues with TF Install Process --- #
 sudo mkdir -pm 777 /var/lib/contrail/kafka-logs
-curl https://raw.githubusercontent.com/Juniper/contrail-kubernetes-docs/master/install/kubernetes/templates/contrail-single-step-cni-install-centos.yaml | sed "s/{{ K8S_MASTER_IP }}/$K8S_MASTER_IP/g; s/{{ CONTRAIL_REPO }}/$TF_REPO/g; s/{{ CONTRAIL_RELEASE }}/$TF_RELEASE/g" >> tf.yaml
-
-## change the `VROUTER_GATEWAY` to the underly gateway or network connectivity to the master will be lost
-sed -i "s/VROUTER_GATEWAY: $K8S_MASTER_IP/VROUTER_GATEWAY: $VROUTER_GATEWAY/g" tf.yaml
-
-## uncomment to change the default `pod` and `service` networks
-#sed -i 's|KUBERNETES_API_SECURE_PORT: "6443"|KUBERNETES_API_SECURE_PORT: "6443"\n  KUBERNETES_POD_SUBNETS: 10.48.0.0/12\n  KUBERNETES_SERVICE_SUBNETS: 10.112.0.0/12\n  KUBERNETES_IP_FABRIC_SUBNETS: 10.80.0.0/12|g' tf.yaml
-
+sed -i "s/{{ K8S_MASTER_IP }}/$K8S_MASTER_IP/g" tf.yaml
+sed -i "s/{{ VROUTER_GATEWAY }}/$VROUTER_GATEWAY/g" tf.yaml
+sed -i "s/{{ CONTRAIL_REPO }}/$TF_REPO/g" tf.yaml
+sed -i "s/{{ CONTRAIL_RELEASE }}/$TF_RELEASE/g" tf.yaml
 kubectl apply -f tf.yaml

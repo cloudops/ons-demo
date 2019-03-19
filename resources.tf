@@ -187,6 +187,12 @@ resource "null_resource" "master_instance_setup" {
       "chmod 400 /home/${var.username}/.ssh/id_rsa"
     ]
   }
+
+    # copy the TF config yaml in place
+  provisioner "file" {
+    source      = "templates/tf.yaml"
+    destination = "/home/${var.username}/tf.yaml"
+  }
   
   # copy the bash script in place
   provisioner "file" {
