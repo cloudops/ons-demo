@@ -122,3 +122,18 @@ sed -i "s/{{ VROUTER_GATEWAY }}/$VROUTER_GATEWAY/g" tf.yaml
 sed -i "s/{{ CONTRAIL_REPO }}/$TF_REPO/g" tf.yaml
 sed -i "s/{{ CONTRAIL_RELEASE }}/$TF_RELEASE/g" tf.yaml
 kubectl apply -f tf.yaml
+
+# sudo yum install -y epel-release
+# sudo yum install -y nginx
+# sudo vim /etc/nginx/conf.d/consul_ui.conf
+# server {
+#     listen 8080;
+
+#     location / {
+#         proxy_pass http://10.101.114.99:80;
+#     }
+# }
+
+# sudo systemctl restart nginx
+
+# public ip pf rule for 8080

@@ -283,6 +283,12 @@ resource "null_resource" "master_finalize_setup" {
     destination = "/home/${var.username}/local_storage_pv.yaml"
   }
 
+  # copy the files in place
+  provisioner "file" {
+    source      = "templates/helm_consul_values.yaml"
+    destination = "/home/${var.username}/helm_consul_values.yaml"
+  }
+
   # Setup a Local Storage PV, Install Helm, Init Helm, Get and Install Consul
   provisioner "remote-exec" {
     inline = [
@@ -294,13 +300,9 @@ resource "null_resource" "master_finalize_setup" {
       "git clone https://github.com/hashicorp/consul-helm.git",
       "cd consul-helm",
       "git checkout v0.6.0",
-      "sed -i 's/replicas: 3/replicas: 1/g' values.yaml",
-      "sed -i 's/bootstrapExpect: 3 # Should <= replicas count/bootstrapExpect: 1/g' values.yaml",
-      "sed -i 's/maxUnavailable: null/maxUnavailable: 1/g' values.yaml",
-      "sed -i 's/storageClass: null/storageClass: local-storage/g' values.yaml",
       "sleep 5",
       "while [ \"$(kubectl get pods -l name=tiller -n kube-system -o 'jsonpath={.items[0].status.conditions[?(@.type==\"Ready\")].status}')\" != 'True' ]; do echo 'waiting for tiller...'; sleep 2; done",
-      "helm install ./"
+      "helm install ./ -f /home/${var.username}/helm_consul_values.yaml"
     ]
   }
 
