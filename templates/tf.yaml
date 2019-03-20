@@ -29,6 +29,9 @@ data:
   WEBUI_NODES: {{ K8S_MASTER_IP }}
   WEBUI_VIP: ""
   ZOOKEEPER_ANALYTICS_PORT: "2182"
+  KUBERNETES_IP_FABRIC_SNAT: "true"
+  DIST_SNAT_PROTO_PORT_LIST: "tcp:1024,udp:1024"
+  JVM_EXTRA_OPTS: "-Xms1g -Xmx2g"
 ---
 apiVersion: v1
 kind: ConfigMap
