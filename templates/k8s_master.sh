@@ -18,14 +18,14 @@ fi
 
 if [ -z "$2" ]
 then
-      echo "Missing 'gateway' of the underlay network as second argument..."
+      echo "Missing 'pod' network CIDR..."
       exit 1
 fi
 
-TF_RELEASE="latest"
-if [ -n "$3" ]
+if [ -z "$3" ]
 then
-      TF_RELEASE="$3"
+      echo "Missing 'service' network CIDR..."
+      exit 1
 fi
 
 TOKEN=""
@@ -34,11 +34,11 @@ then
       TOKEN="--token $4"
 fi
 
-echo "Setting up K8S Master with token: $4"
+echo "Setting up K8S Master with token: $TOKEN"
 
 K8S_MASTER_IP=$1
-VROUTER_GATEWAY=$2
-TF_REPO="docker.io\/opencontrailnightly"
+POD_CIDR=$2
+SERVICE_CIDR=$3
 
 ## SETUP PACKAGES AND SERVICES
 swapoff -a
@@ -82,45 +82,17 @@ sudo sysctl -w net.bridge.bridge-nf-call-iptables=1
 sudo systemctl stop firewalld
 sudo systemctl disable firewalld
 
-echo "source <(kubectl completion bash)" >> $HOME/.bashrc
-
 sleep 5
 
 ## INSTALL KUBERNETES
-sudo kubeadm init --apiserver-cert-extra-sans $K8S_MASTER_IP $TOKEN >> $HOME/kubeadm_init.log
-## uncomment to change the default `pod` and `service` networks
-#sudo kubeadm init --apiserver-cert-extra-sans $K8S_MASTER_IP $TOKEN --pod-network-cidr "10.48.0.0/12" --service-cidr "10.112.0.0/12" >> $HOME/kubeadm_init.log
+sudo kubeadm init --apiserver-cert-extra-sans $K8S_MASTER_IP $TOKEN --pod-network-cidr ${POD_CIDR} --service-cidr ${SERVICE_CIDR} >> $HOME/kubeadm_init.log
 
 mkdir -p $HOME/.kube
 sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
 sudo chown $USER:$USER $HOME/.kube/config
 
 # ## INSTALL TUNGSTEN FABRIC
-# sudo mkdir -pm 777 /var/lib/contrail/kafka-logs
-# curl https://raw.githubusercontent.com/Juniper/contrail-kubernetes-docs/master/install/kubernetes/templates/contrail-single-step-cni-install-centos.yaml | sed "s/{{ K8S_MASTER_IP }}/$K8S_MASTER_IP/g; s/{{ CONTRAIL_REPO }}/$TF_REPO/g; s/{{ CONTRAIL_RELEASE }}/$TF_RELEASE/g" >> tf.yaml
-
-# ## change the `VROUTER_GATEWAY` to the underly gateway or network connectivity to the master will be lost
-# sed -i "s/VROUTER_GATEWAY: $K8S_MASTER_IP/VROUTER_GATEWAY: $VROUTER_GATEWAY/g" tf.yaml
-
-# ## uncomment to change the default `pod` and `service` networks
-# #sed -i 's|KUBERNETES_API_SECURE_PORT: "6443"|KUBERNETES_API_SECURE_PORT: "6443"\n  KUBERNETES_POD_SUBNETS: 10.48.0.0/12\n  KUBERNETES_SERVICE_SUBNETS: 10.112.0.0/12\n  KUBERNETES_IP_FABRIC_SUBNETS: 10.80.0.0/12|g' tf.yaml
-
-# kubectl apply -f tf.yaml
-
-# # --- New TF Install Process --- #
-# sleep 300
-# git clone https://github.com/Juniper/contrail-container-builder.git
-# cd contrail-container-builder/kubernetes/manifests/
-# bash resolve-manifest.sh contrail-standalone-kubernetes.yaml >> $HOME/tf.yaml
-# cd $HOME
-# kubectl apply -f tf.yaml
-
-# --- Manually fixed issues with TF Install Process --- #
 sudo mkdir -pm 777 /var/lib/contrail/kafka-logs
-sed -i "s/{{ K8S_MASTER_IP }}/$K8S_MASTER_IP/g" tf.yaml
-sed -i "s/{{ VROUTER_GATEWAY }}/$VROUTER_GATEWAY/g" tf.yaml
-sed -i "s/{{ CONTRAIL_REPO }}/$TF_REPO/g" tf.yaml
-sed -i "s/{{ CONTRAIL_RELEASE }}/$TF_RELEASE/g" tf.yaml
 kubectl apply -f tf.yaml
 
 # sudo yum install -y epel-release
@@ -130,7 +102,7 @@ kubectl apply -f tf.yaml
 #     listen 8080;
 
 #     location / {
-#         proxy_pass http://10.101.114.99:80;
+#         proxy_pass http://10.97.60.190:80;
 #     }
 # }
 

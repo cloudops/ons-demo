@@ -168,6 +168,38 @@ output "worker =>" {
   value = "ssh ${var.username}@${cloudca_public_ip.worker_public_ip.ip_address} -i ./terraform.tfstate.d/${terraform.workspace}/id_rsa"
 }
 
+# The PF rule to map the public port with the private port (tf web ui)
+resource "cloudca_port_forwarding_rule" "master_tf_ui_pfr" {
+  environment_id = "${cloudca_environment.demo_env.id}"
+  public_ip_id = "${cloudca_public_ip.master_public_ip.id}"
+  private_ip_id = "${cloudca_instance.master_instance.private_ip_id}"
+  public_port_start = "8143"
+  private_port_start = "8143"
+  protocol = "TCP"
+}
+output "TF Web UI =>" {
+  value = "https://${cloudca_public_ip.master_public_ip.ip_address}:8143/"
+}
+output "TF Web UI Credentials =>" {
+  value = "admin / ${var.tf_ui_password}"
+}
+
+# Tunsten Fabric config file generation
+data "template_file" "tf_config" {
+  template = "${file("templates/tf.yaml")}"
+
+  vars {
+    master_ip = "${cloudca_instance.master_instance.private_ip}"
+    vrouter_gateway = "${join(".", slice(split(".", cloudca_instance.master_instance.private_ip), 0, 3))}.1"
+    pod_subnet = "${var.tf_pod_cidr}"
+    service_subnet = "${var.tf_service_cidr}"
+    ip_fabric_subnet = "${var.tf_ip_fabric_cidr}"
+    tf_release = "${var.tf_release}"
+    tf_repo = "${var.tf_repo}"
+    tf_ui_password = "${var.tf_ui_password}"
+  }
+}
+
 # When instances change, setup additional details for the VM
 resource "null_resource" "master_instance_setup" {
   # when an instance changes
@@ -190,7 +222,7 @@ resource "null_resource" "master_instance_setup" {
 
     # copy the TF config yaml in place
   provisioner "file" {
-    source      = "templates/tf.yaml"
+    content     = "${data.template_file.tf_config.rendered}"
     destination = "/home/${var.username}/tf.yaml"
   }
   
@@ -204,7 +236,7 @@ resource "null_resource" "master_instance_setup" {
   provisioner "remote-exec" {
     inline = [
       "chmod +x /home/${var.username}/k8s_master.sh",
-      "./k8s_master.sh ${cloudca_instance.master_instance.private_ip} ${join(".", slice(split(".", cloudca_instance.master_instance.private_ip), 0, 3))}.1 ${var.tf_release} '${local.token}'"
+      "./k8s_master.sh ${cloudca_instance.master_instance.private_ip} '${var.tf_pod_cidr}' '${var.tf_service_cidr}' '${local.token}'"
     ]
   }
 

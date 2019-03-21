@@ -7,27 +7,28 @@ metadata:
 data:
   AAA_MODE: no-auth
   ANALYTICS_API_VIP: ""
-  ANALYTICS_NODES: {{ K8S_MASTER_IP }}
-  ANALYTICSDB_NODES: {{ K8S_MASTER_IP }}
-  ANALYTICS_SNMP_NODES: {{ K8S_MASTER_IP }}
-  ANALYTICS_ALARM_NODES: {{ K8S_MASTER_IP }}
+  ANALYTICS_NODES: ${master_ip}
+  ANALYTICSDB_NODES: ${master_ip}
+  ANALYTICS_SNMP_NODES: ${master_ip}
+  ANALYTICS_ALARM_NODES: ${master_ip}
   ANALYTICSDB_ENABLE: "true"
   ANALYTICS_ALARM_ENABLE: "true"
   ANALYTICS_SNMP_ENABLE: "true"
   AUTH_MODE: noauth
   CLOUD_ORCHESTRATOR: kubernetes
   CONFIG_API_VIP: ""
-  CONFIG_NODES: {{ K8S_MASTER_IP }}
-  CONFIGDB_NODES: {{ K8S_MASTER_IP }}
-  CONTROL_NODES: {{ K8S_MASTER_IP }}
-  CONTROLLER_NODES: {{ K8S_MASTER_IP }}
+  CONFIG_NODES: ${master_ip}
+  CONFIGDB_NODES: ${master_ip}
+  CONTROL_NODES: ${master_ip}
+  CONTROLLER_NODES: ${master_ip}
   LOG_LEVEL: SYS_NOTICE
   METADATA_PROXY_SECRET: contrail
-  RABBITMQ_NODES: {{ K8S_MASTER_IP }}
+  RABBITMQ_NODES: ${master_ip}
   RABBITMQ_NODE_PORT: "5673"
-  VROUTER_GATEWAY: {{ VROUTER_GATEWAY }}
-  WEBUI_NODES: {{ K8S_MASTER_IP }}
+  VROUTER_GATEWAY: ${vrouter_gateway}
+  WEBUI_NODES: ${master_ip}
   WEBUI_VIP: ""
+  WEBUI_STATIC_AUTH_PASSWORD: ${tf_ui_password}
   ZOOKEEPER_ANALYTICS_PORT: "2182"
   KUBERNETES_IP_FABRIC_SNAT: "true"
   DIST_SNAT_PROTO_PORT_LIST: "tcp:1024,udp:1024"
@@ -39,7 +40,7 @@ metadata:
   name: configzookeeperenv
   namespace: kube-system
 data:
-  ZOOKEEPER_NODES: {{ K8S_MASTER_IP }}
+  ZOOKEEPER_NODES: ${master_ip}
   ZOOKEEPER_PORT: "2181"
   ZOOKEEPER_PORTS: "2888:3888"
 ---
@@ -49,7 +50,7 @@ metadata:
   name: analyticszookeeperenv
   namespace: kube-system
 data:
-  ZOOKEEPER_NODES: {{ K8S_MASTER_IP }}
+  ZOOKEEPER_NODES: ${master_ip}
   ZOOKEEPER_PORT: "2181"
   ZOOKEEPER_PORTS: "2888:3888"
 
@@ -68,7 +69,7 @@ metadata:
   name: contrail-analyticsdb-config
   namespace: kube-system
 data:
-  CASSANDRA_SEEDS: {{ K8S_MASTER_IP }}
+  CASSANDRA_SEEDS: ${master_ip}
   CASSANDRA_CLUSTER_NAME: Contrail
   CASSANDRA_START_RPC: "true"
   CASSANDRA_LISTEN_ADDRESS: auto
@@ -84,7 +85,7 @@ metadata:
   name: contrail-configdb-config
   namespace: kube-system
 data:
-  CASSANDRA_SEEDS: {{ K8S_MASTER_IP }}
+  CASSANDRA_SEEDS: ${master_ip}
   CASSANDRA_CLUSTER_NAME: ContrailConfigDB
   CASSANDRA_START_RPC: "true"
   CASSANDRA_LISTEN_ADDRESS: auto
@@ -108,8 +109,11 @@ metadata:
   name: kube-manager-config
   namespace: kube-system
 data:
-  KUBERNETES_API_SERVER: {{ K8S_MASTER_IP }}
+  KUBERNETES_API_SERVER: ${master_ip}
   KUBERNETES_API_SECURE_PORT: "6443"
+  KUBERNETES_POD_SUBNETS: ${pod_subnet}
+  KUBERNETES_SERVICE_SUBNETS: ${service_subnet}
+  KUBERNETES_IP_FABRIC_SUBNETS: ${ip_fabric_subnet}
   K8S_TOKEN_FILE: "/tmp/serviceaccount/token"
 # Containers section
 ---
@@ -143,7 +147,7 @@ spec:
       hostNetwork: true
       containers:
       - name: config-zookeeper
-        image: "{{ CONTRAIL_REPO }}/contrail-external-zookeeper:{{ CONTRAIL_RELEASE }}"
+        image: "${tf_repo}/contrail-external-zookeeper:${tf_release}"
         imagePullPolicy: ""
         env:
         - name: NODE_TYPE
@@ -196,13 +200,13 @@ spec:
       hostNetwork: true
       initContainers:
       - name: contrail-node-init
-        image: "{{ CONTRAIL_REPO }}/contrail-node-init:{{ CONTRAIL_RELEASE }}"
+        image: "${tf_repo}/contrail-node-init:${tf_release}"
         imagePullPolicy: ""
         env:
         - name: NODE_TYPE
           value: "database"
         - name: CONTRAIL_STATUS_IMAGE
-          value: "{{ CONTRAIL_REPO }}/contrail-status:{{ CONTRAIL_RELEASE }}"
+          value: "${tf_repo}/contrail-status:${tf_release}"
         envFrom:
         - configMapRef:
             name: contrail-analyticsdb-config
@@ -215,7 +219,7 @@ spec:
           name: host-var-lib
       containers:
       - name: contrail-analyticsdb-nodemgr
-        image: "{{ CONTRAIL_REPO }}/contrail-nodemgr:{{ CONTRAIL_RELEASE }}"
+        image: "${tf_repo}/contrail-nodemgr:${tf_release}"
         imagePullPolicy: ""
         securityContext:
           privileged: true
@@ -237,7 +241,7 @@ spec:
         - mountPath: /mnt
           name: docker-unix-socket
       - name: contrail-analyticsdb
-        image: "{{ CONTRAIL_REPO }}/contrail-external-cassandra:{{ CONTRAIL_RELEASE }}"
+        image: "${tf_repo}/contrail-external-cassandra:${tf_release}"
         imagePullPolicy: ""
         env:
         - name: NODE_TYPE
@@ -251,7 +255,7 @@ spec:
         - mountPath: /var/log/cassandra
           name: analyticsdb-logs
       - name: contrail-analytics-query-engine
-        image: "{{ CONTRAIL_REPO }}/contrail-analytics-query-engine:{{ CONTRAIL_RELEASE }}"
+        image: "${tf_repo}/contrail-analytics-query-engine:${tf_release}"
         imagePullPolicy: ""
         securityContext:
           privileged: true
@@ -313,7 +317,7 @@ spec:
       hostNetwork: true
       containers:
       - name: contrail-configdb
-        image: "{{ CONTRAIL_REPO }}/contrail-external-cassandra:{{ CONTRAIL_RELEASE }}"
+        image: "${tf_repo}/contrail-external-cassandra:${tf_release}"
         imagePullPolicy: ""
         env:
         - name: NODE_TYPE
@@ -364,13 +368,13 @@ spec:
       hostNetwork: true
       initContainers:
       - name: contrail-node-init
-        image: "{{ CONTRAIL_REPO }}/contrail-node-init:{{ CONTRAIL_RELEASE }}"
+        image: "${tf_repo}/contrail-node-init:${tf_release}"
         imagePullPolicy: ""
         securityContext:
           privileged: true
         env:
         - name: CONTRAIL_STATUS_IMAGE
-          value: "{{ CONTRAIL_REPO }}/contrail-status:{{ CONTRAIL_RELEASE }}"
+          value: "${tf_repo}/contrail-status:${tf_release}"
         envFrom:
         - configMapRef:
             name: env
@@ -379,7 +383,7 @@ spec:
           name: host-usr-bin
       containers:
       - name: contrail-config-database-nodemgr
-        image: "{{ CONTRAIL_REPO }}/contrail-nodemgr:{{ CONTRAIL_RELEASE }}"
+        image: "${tf_repo}/contrail-nodemgr:${tf_release}"
         imagePullPolicy: ""
         envFrom:
         - configMapRef:
@@ -444,13 +448,13 @@ spec:
       hostNetwork: true
       initContainers:
       - name: contrail-node-init
-        image: "{{ CONTRAIL_REPO }}/contrail-node-init:{{ CONTRAIL_RELEASE }}"
+        image: "${tf_repo}/contrail-node-init:${tf_release}"
         imagePullPolicy: ""
         securityContext:
           privileged: true
         env:
         - name: CONTRAIL_STATUS_IMAGE
-          value: "{{ CONTRAIL_REPO }}/contrail-status:{{ CONTRAIL_RELEASE }}"
+          value: "${tf_repo}/contrail-status:${tf_release}"
         envFrom:
         - configMapRef:
             name: env
@@ -459,7 +463,7 @@ spec:
           name: host-usr-bin
       containers:
       - name: contrail-analytics-api
-        image: "{{ CONTRAIL_REPO }}/contrail-analytics-api:{{ CONTRAIL_RELEASE }}"
+        image: "${tf_repo}/contrail-analytics-api:${tf_release}"
         imagePullPolicy: ""
         envFrom:
         - configMapRef:
@@ -470,7 +474,7 @@ spec:
         - mountPath: /var/log/contrail
           name: analytics-logs
       - name: contrail-analytics-collector
-        image: "{{ CONTRAIL_REPO }}/contrail-analytics-collector:{{ CONTRAIL_RELEASE }}"
+        image: "${tf_repo}/contrail-analytics-collector:${tf_release}"
         imagePullPolicy: ""
         envFrom:
         - configMapRef:
@@ -479,7 +483,7 @@ spec:
         - mountPath: /var/log/contrail
           name: analytics-logs
       - name: contrail-analytics-nodemgr
-        image: "{{ CONTRAIL_REPO }}/contrail-nodemgr:{{ CONTRAIL_RELEASE }}"
+        image: "${tf_repo}/contrail-nodemgr:${tf_release}"
         imagePullPolicy: ""
         envFrom:
         - configMapRef:
@@ -542,13 +546,13 @@ spec:
       hostNetwork: true
       initContainers:
       - name: contrail-node-init
-        image: "{{ CONTRAIL_REPO }}/contrail-node-init:{{ CONTRAIL_RELEASE }}"
+        image: "${tf_repo}/contrail-node-init:${tf_release}"
         imagePullPolicy: ""
         env:
         - name: NODE_TYPE
           value: "analytics-snmp"
         - name: CONTRAIL_STATUS_IMAGE
-          value: "{{ CONTRAIL_REPO }}/contrail-status:{{ CONTRAIL_RELEASE }}"
+          value: "${tf_repo}/contrail-status:${tf_release}"
         envFrom:
         - configMapRef:
             name: env
@@ -563,7 +567,7 @@ spec:
           name: host-var-lib
       containers:
       - name: contrail-analytics-snmp-collector
-        image: "{{ CONTRAIL_REPO }}/contrail-analytics-snmp-collector:{{ CONTRAIL_RELEASE }}"
+        image: "${tf_repo}/contrail-analytics-snmp-collector:${tf_release}"
         imagePullPolicy: ""
         securityContext:
           privileged: true
@@ -577,7 +581,7 @@ spec:
         - name: NODE_TYPE
           value: analytics-snmp
       - name: contrail-analytics-snmp-topology
-        image: "{{ CONTRAIL_REPO }}/contrail-analytics-snmp-topology:{{ CONTRAIL_RELEASE }}"
+        image: "${tf_repo}/contrail-analytics-snmp-topology:${tf_release}"
         imagePullPolicy: ""
         securityContext:
           privileged: true
@@ -591,7 +595,7 @@ spec:
         - name: NODE_TYPE
           value: analytics-snmp
       - name: contrail-analytics-snmp-nodemgr
-        image: "{{ CONTRAIL_REPO }}/contrail-nodemgr:{{ CONTRAIL_RELEASE }}"
+        image: "${tf_repo}/contrail-nodemgr:${tf_release}"
         imagePullPolicy: ""
         securityContext:
           privileged: true
@@ -654,13 +658,13 @@ spec:
       hostNetwork: true
       initContainers:
       - name: contrail-node-init
-        image: "{{ CONTRAIL_REPO }}/contrail-node-init:{{ CONTRAIL_RELEASE }}"
+        image: "${tf_repo}/contrail-node-init:${tf_release}"
         imagePullPolicy: ""
         env:
         - name: NODE_TYPE
           value: "analytics-alarm"
         - name: CONTRAIL_STATUS_IMAGE
-          value: "{{ CONTRAIL_REPO }}/contrail-status:{{ CONTRAIL_RELEASE }}"
+          value: "${tf_repo}/contrail-status:${tf_release}"
         envFrom:
         - configMapRef:
             name: env
@@ -675,7 +679,7 @@ spec:
           name: host-var-lib
       containers:
       - name: kafka
-        image: "{{ CONTRAIL_REPO }}/contrail-external-kafka:{{ CONTRAIL_RELEASE }}"
+        image: "${tf_repo}/contrail-external-kafka:${tf_release}"
         imagePullPolicy: "IfNotPresent"
         securityContext:
           privileged: true
@@ -683,14 +687,14 @@ spec:
         - name: NODE_TYPE
           value: analytics-alarm
         - name: KAFKA_NODES
-          value: {{ K8S_MASTER_IP }}
+          value: ${master_ip}
         envFrom:
         - configMapRef:
             name: env
         - configMapRef:
             name: analyticszookeeperenv
       - name: contrail-analytics-alarm-gen
-        image: "{{ CONTRAIL_REPO }}/contrail-analytics-alarm-gen:{{ CONTRAIL_RELEASE }}"
+        image: "${tf_repo}/contrail-analytics-alarm-gen:${tf_release}"
         imagePullPolicy: ""
         securityContext:
           privileged: true
@@ -706,7 +710,7 @@ spec:
         - name: NODE_TYPE
           value: analytics-alarm
       - name: contrail-analytics-alarm-nodemgr
-        image: "{{ CONTRAIL_REPO }}/contrail-nodemgr:{{ CONTRAIL_RELEASE }}"
+        image: "${tf_repo}/contrail-nodemgr:${tf_release}"
         imagePullPolicy: ""
         securityContext:
           privileged: true
@@ -769,13 +773,13 @@ spec:
       hostNetwork: true
       initContainers:
       - name: contrail-node-init
-        image: "{{ CONTRAIL_REPO }}/contrail-node-init:{{ CONTRAIL_RELEASE }}"
+        image: "${tf_repo}/contrail-node-init:${tf_release}"
         imagePullPolicy: ""
         securityContext:
           privileged: true
         env:
         - name: CONTRAIL_STATUS_IMAGE
-          value: "{{ CONTRAIL_REPO }}/contrail-status:{{ CONTRAIL_RELEASE }}"
+          value: "${tf_repo}/contrail-status:${tf_release}"
         envFrom:
         - configMapRef:
             name: env
@@ -784,7 +788,7 @@ spec:
           name: host-usr-bin
       containers:
       - name: contrail-controller-control
-        image: "{{ CONTRAIL_REPO }}/contrail-controller-control-control:{{ CONTRAIL_RELEASE }}"
+        image: "${tf_repo}/contrail-controller-control-control:${tf_release}"
         imagePullPolicy: ""
         envFrom:
         - configMapRef:
@@ -793,7 +797,7 @@ spec:
         - mountPath: /var/log/contrail
           name: control-logs
       - name: contrail-controller-control-dns
-        image: "{{ CONTRAIL_REPO }}/contrail-controller-control-dns:{{ CONTRAIL_RELEASE }}"
+        image: "${tf_repo}/contrail-controller-control-dns:${tf_release}"
         imagePullPolicy: ""
         envFrom:
         - configMapRef:
@@ -804,7 +808,7 @@ spec:
         - mountPath: /var/log/contrail
           name: control-logs
       - name: contrail-controller-control-named
-        image: "{{ CONTRAIL_REPO }}/contrail-controller-control-named:{{ CONTRAIL_RELEASE }}"
+        image: "${tf_repo}/contrail-controller-control-named:${tf_release}"
         imagePullPolicy: ""
         envFrom:
         - configMapRef:
@@ -817,7 +821,7 @@ spec:
         - mountPath: /var/log/contrail
           name: control-logs
       - name: contrail-controller-nodemgr
-        image: "{{ CONTRAIL_REPO }}/contrail-nodemgr:{{ CONTRAIL_RELEASE }}"
+        image: "${tf_repo}/contrail-nodemgr:${tf_release}"
         imagePullPolicy: ""
         envFrom:
         - configMapRef:
@@ -882,13 +886,13 @@ spec:
       hostNetwork: true
       initContainers:
       - name: contrail-node-init
-        image: "{{ CONTRAIL_REPO }}/contrail-node-init:{{ CONTRAIL_RELEASE }}"
+        image: "${tf_repo}/contrail-node-init:${tf_release}"
         imagePullPolicy: ""
         securityContext:
           privileged: true
         env:
         - name: CONTRAIL_STATUS_IMAGE
-          value: "{{ CONTRAIL_REPO }}/contrail-status:{{ CONTRAIL_RELEASE }}"
+          value: "${tf_repo}/contrail-status:${tf_release}"
         envFrom:
         - configMapRef:
             name: env
@@ -897,7 +901,7 @@ spec:
           name: host-usr-bin
       containers:
       - name: contrail-controller-config-api
-        image: "{{ CONTRAIL_REPO }}/contrail-controller-config-api:{{ CONTRAIL_RELEASE }}"
+        image: "${tf_repo}/contrail-controller-config-api:${tf_release}"
         imagePullPolicy: ""
         envFrom:
         - configMapRef:
@@ -908,7 +912,7 @@ spec:
         - mountPath: /var/log/contrail
           name: config-logs
       - name: contrail-controller-config-devicemgr
-        image: "{{ CONTRAIL_REPO }}/contrail-controller-config-devicemgr:{{ CONTRAIL_RELEASE }}"
+        image: "${tf_repo}/contrail-controller-config-devicemgr:${tf_release}"
         imagePullPolicy: ""
         envFrom:
         - configMapRef:
@@ -919,7 +923,7 @@ spec:
         - mountPath: /var/log/contrail
           name: config-logs
       - name: contrail-controller-config-schema
-        image: "{{ CONTRAIL_REPO }}/contrail-controller-config-schema:{{ CONTRAIL_RELEASE }}"
+        image: "${tf_repo}/contrail-controller-config-schema:${tf_release}"
         imagePullPolicy: ""
         envFrom:
         - configMapRef:
@@ -930,7 +934,7 @@ spec:
         - mountPath: /var/log/contrail
           name: config-logs
       - name: contrail-controller-config-svcmonitor
-        image: "{{ CONTRAIL_REPO }}/contrail-controller-config-svcmonitor:{{ CONTRAIL_RELEASE }}"
+        image: "${tf_repo}/contrail-controller-config-svcmonitor:${tf_release}"
         imagePullPolicy: ""
         envFrom:
         - configMapRef:
@@ -941,7 +945,7 @@ spec:
         - mountPath: /var/log/contrail
           name: config-logs
       - name: contrail-controller-config-nodemgr
-        image: "{{ CONTRAIL_REPO }}/contrail-nodemgr:{{ CONTRAIL_RELEASE }}"
+        image: "${tf_repo}/contrail-nodemgr:${tf_release}"
         imagePullPolicy: ""
         envFrom:
         - configMapRef:
@@ -1010,13 +1014,13 @@ spec:
       hostNetwork: true
       initContainers:
       - name: contrail-node-init
-        image: "{{ CONTRAIL_REPO }}/contrail-node-init:{{ CONTRAIL_RELEASE }}"
+        image: "${tf_repo}/contrail-node-init:${tf_release}"
         imagePullPolicy: ""
         securityContext:
           privileged: true
         env:
         - name: CONTRAIL_STATUS_IMAGE
-          value: "{{ CONTRAIL_REPO }}/contrail-status:{{ CONTRAIL_RELEASE }}"
+          value: "${tf_repo}/contrail-status:${tf_release}"
         envFrom:
         - configMapRef:
             name: env
@@ -1025,7 +1029,7 @@ spec:
           name: host-usr-bin
       containers:
       - name: contrail-controller-webui-job
-        image: "{{ CONTRAIL_REPO }}/contrail-controller-webui-job:{{ CONTRAIL_RELEASE }}"
+        image: "${tf_repo}/contrail-controller-webui-job:${tf_release}"
         imagePullPolicy: ""
         envFrom:
         - configMapRef:
@@ -1034,7 +1038,7 @@ spec:
         - mountPath: /var/log/contrail
           name: webui-logs
       - name: contrail-controller-webui-web
-        image: "{{ CONTRAIL_REPO }}/contrail-controller-webui-web:{{ CONTRAIL_RELEASE }}"
+        image: "${tf_repo}/contrail-controller-webui-web:${tf_release}"
         imagePullPolicy: ""
         envFrom:
         - configMapRef:
@@ -1128,7 +1132,7 @@ spec:
       hostNetwork: true
       containers:
       - name: rabbitmq
-        image: "{{ CONTRAIL_REPO }}/contrail-external-rabbitmq:{{ CONTRAIL_RELEASE }}"
+        image: "${tf_repo}/contrail-external-rabbitmq:${tf_release}"
         imagePullPolicy: ""
         env:
         - name: NODE_TYPE
@@ -1182,13 +1186,13 @@ spec:
       hostNetwork: true
       initContainers:
       - name: contrail-node-init
-        image: "{{ CONTRAIL_REPO }}/contrail-node-init:{{ CONTRAIL_RELEASE }}"
+        image: "${tf_repo}/contrail-node-init:${tf_release}"
         imagePullPolicy: ""
         securityContext:
           privileged: true
         env:
         - name: CONTRAIL_STATUS_IMAGE
-          value: "{{ CONTRAIL_REPO }}/contrail-status:{{ CONTRAIL_RELEASE }}"
+          value: "${tf_repo}/contrail-status:${tf_release}"
         envFrom:
         - configMapRef:
             name: env
@@ -1197,7 +1201,7 @@ spec:
           name: host-usr-bin
       containers:
       - name: contrail-kube-manager
-        image: "{{ CONTRAIL_REPO }}/contrail-kubernetes-kube-manager:{{ CONTRAIL_RELEASE }}"
+        image: "${tf_repo}/contrail-kubernetes-kube-manager:${tf_release}"
         imagePullPolicy: ""
         envFrom:
         - configMapRef:
@@ -1244,13 +1248,13 @@ spec:
       hostNetwork: true
       initContainers:
       - name: contrail-node-init
-        image: "{{ CONTRAIL_REPO }}/contrail-node-init:{{ CONTRAIL_RELEASE }}"
+        image: "${tf_repo}/contrail-node-init:${tf_release}"
         imagePullPolicy: ""
         securityContext:
           privileged: true
         env:
         - name: CONTRAIL_STATUS_IMAGE
-          value: "{{ CONTRAIL_REPO }}/contrail-status:{{ CONTRAIL_RELEASE }}"
+          value: "${tf_repo}/contrail-status:${tf_release}"
         envFrom:
         - configMapRef:
             name: env
@@ -1258,7 +1262,7 @@ spec:
         - mountPath: /host/usr/bin
           name: host-usr-bin
       - name: contrail-vrouter-kernel-init
-        image: "{{ CONTRAIL_REPO }}/contrail-vrouter-kernel-init:{{ CONTRAIL_RELEASE }}"
+        image: "${tf_repo}/contrail-vrouter-kernel-init:${tf_release}"
         imagePullPolicy: ""
         securityContext:
           privileged: true
@@ -1275,7 +1279,7 @@ spec:
         - mountPath: /host/bin
           name: host-bin
       - name: contrail-kubernetes-cni-init
-        image: "{{ CONTRAIL_REPO }}/contrail-kubernetes-cni-init:{{ CONTRAIL_RELEASE }}"
+        image: "${tf_repo}/contrail-kubernetes-cni-init:${tf_release}"
         imagePullPolicy: ""
         envFrom:
         - configMapRef:
@@ -1293,7 +1297,7 @@ spec:
           name: agent-logs
       containers:
       - name: contrail-vrouter-agent
-        image: "{{ CONTRAIL_REPO }}/contrail-vrouter-agent:{{ CONTRAIL_RELEASE }}"
+        image: "${tf_repo}/contrail-vrouter-agent:${tf_release}"
         imagePullPolicy: ""
         # TODO: Priveleged mode is requied because w/o it the device /dev/net/tun
         # is not present in the container. The mounting it into container
@@ -1328,7 +1332,7 @@ spec:
         - mountPath: /tmp/serviceaccount
           name: pod-secret
       - name: contrail-agent-nodemgr
-        image: "{{ CONTRAIL_REPO }}/contrail-nodemgr:{{ CONTRAIL_RELEASE }}"
+        image: "${tf_repo}/contrail-nodemgr:${tf_release}"
         imagePullPolicy: ""
         envFrom:
         - configMapRef:

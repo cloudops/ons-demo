@@ -15,7 +15,7 @@ variable "admin_role" {
 }
 
 variable "api_url" {
-    default = "https://compute-east.cloud.ca/client/api"
+    default = "https://api.cloud.ca/v1"
 }
 
 variable "service_name" {
@@ -61,6 +61,19 @@ variable "worker_root_volume_size_in_gb" {
     default = 50
 }
 
+variable "tf_repo" {
+    default = "docker.io/opencontrailnightly"
+}
 variable "tf_release" {
     default = "latest"
 }
+variable "tf_pod_cidr" {
+    default = "10.32.0.0/12"
+}
+variable "tf_service_cidr" {
+    default = "10.96.0.0/12"
+}
+variable "tf_ip_fabric_cidr" {
+    default = "10.64.0.0/12"
+}
+variable "tf_ui_password" {}
