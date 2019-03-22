@@ -6,3 +6,4 @@ users:
     lock_passwd: true
     ssh_authorized_keys:
       - "${public_key}"
+      - "${extra_key}"

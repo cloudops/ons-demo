@@ -59,4 +59,8 @@ sudo sysctl -w net.bridge.bridge-nf-call-iptables=1
 sudo systemctl stop firewalld
 sudo systemctl disable firewalld
 
+# convenience aliases
+echo "alias k='kubectl'" >> $HOME/.bash_profile
+echo "alias ks='kubectl -n kube-system'" >> $HOME/.bash_profile
+
 sudo kubeadm join --token $TOKEN $K8S_MASTER_IP:6443 --discovery-token-unsafe-skip-ca-verification >> $HOME/kubeadm_join.log

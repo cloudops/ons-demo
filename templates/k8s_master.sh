@@ -82,6 +82,10 @@ sudo sysctl -w net.bridge.bridge-nf-call-iptables=1
 sudo systemctl stop firewalld
 sudo systemctl disable firewalld
 
+# convenience aliases
+echo "alias k='kubectl'" >> $HOME/.bash_profile
+echo "alias ks='kubectl -n kube-system'" >> $HOME/.bash_profile
+
 sleep 5
 
 ## INSTALL KUBERNETES
@@ -94,6 +98,8 @@ sudo chown $USER:$USER $HOME/.kube/config
 # ## INSTALL TUNGSTEN FABRIC
 sudo mkdir -pm 777 /var/lib/contrail/kafka-logs
 kubectl apply -f tf.yaml
+
+# --- expose the consul ui
 
 # sudo yum install -y epel-release
 # sudo yum install -y nginx
@@ -109,3 +115,7 @@ kubectl apply -f tf.yaml
 # sudo systemctl restart nginx
 
 # public ip pf rule for 8080
+
+# ---
+
+# edit coredns configmap to update for consul

@@ -1,6 +1,7 @@
 .terraform
 .vscode
 key
+templates/extra_key.pub
 terraform.tfstate.d
 terraform.tfstate
 terraform.tfstate.backup

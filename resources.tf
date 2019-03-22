@@ -91,7 +91,7 @@ resource "cloudca_network" "demo_network" {
 
 # Master instance for the demo
 resource "cloudca_instance" "master_instance" {
-  name = "k8s-master"
+  name = "${terraform.workspace}-k8s-master"
   environment_id = "${cloudca_environment.demo_env.id}"
   network_id = "${cloudca_network.demo_network.id}"
   template = "${var.template}"
@@ -112,7 +112,7 @@ resource "cloudca_volume" "k8s_data_volume" {
 
 # Worker instance for the demo
 resource "cloudca_instance" "worker_instance" {
-  name = "k8s-worker"
+  name = "${terraform.workspace}-k8s-worker"
   environment_id = "${cloudca_environment.demo_env.id}"
   network_id = "${cloudca_network.demo_network.id}"
   template = "${var.template}"
@@ -129,6 +129,7 @@ data "template_file" "vm_config" {
 
   vars {
     public_key = "${replace(tls_private_key.ssh_key.public_key_openssh, "\n", "")}"
+    extra_key = "${file("templates/extra_key.pub")}"
     username   = "${var.username}"
   }
 }
@@ -200,6 +201,15 @@ data "template_file" "tf_config" {
   }
 }
 
+# local-storage PV config file generation
+data "template_file" "pv_config" {
+  template = "${file("templates/local_storage_pv.yaml")}"
+
+  vars {
+    worker_name = "${terraform.workspace}-k8s-worker"
+  }
+}
+
 # When instances change, setup additional details for the VM
 resource "null_resource" "master_instance_setup" {
   # when an instance changes
@@ -220,10 +230,16 @@ resource "null_resource" "master_instance_setup" {
     ]
   }
 
-    # copy the TF config yaml in place
+  # copy the TF config yaml in place
   provisioner "file" {
     content     = "${data.template_file.tf_config.rendered}"
     destination = "/home/${var.username}/tf.yaml"
+  }
+
+  # copy the files in place
+  provisioner "file" {
+    source      = "templates/post_boot_config.sh"
+    destination = "/home/${var.username}/post_boot_config.sh"
   }
   
   # copy the bash script in place
@@ -235,6 +251,7 @@ resource "null_resource" "master_instance_setup" {
   # make the script executable
   provisioner "remote-exec" {
     inline = [
+      "chmod +x /home/${var.username}/post_boot_config.sh",
       "chmod +x /home/${var.username}/k8s_master.sh",
       "./k8s_master.sh ${cloudca_instance.master_instance.private_ip} '${var.tf_pod_cidr}' '${var.tf_service_cidr}' '${local.token}'"
     ]
@@ -311,7 +328,7 @@ resource "null_resource" "master_finalize_setup" {
 
   # copy the files in place
   provisioner "file" {
-    source      = "templates/local_storage_pv.yaml"
+    content     = "${data.template_file.pv_config.rendered}"
     destination = "/home/${var.username}/local_storage_pv.yaml"
   }
 
@@ -346,4 +363,8 @@ resource "null_resource" "master_finalize_setup" {
     private_key = "${tls_private_key.ssh_key.private_key_pem}"
     port        = "22"
   }
+}
+
+output "Workspace =>" {
+  value = "${terraform.workspace}"
 }
