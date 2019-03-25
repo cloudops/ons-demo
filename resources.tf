@@ -201,12 +201,21 @@ data "template_file" "tf_config" {
   }
 }
 
+# Consul config file generation
+data "template_file" "consul_config" {
+  template = "${file("templates/helm_consul_values.yaml")}"
+
+  vars {
+    dc_name = "${var.consul_dc_name}"
+  }
+}
+
 # local-storage PV config file generation
 data "template_file" "pv_config" {
   template = "${file("templates/local_storage_pv.yaml")}"
 
   vars {
-    worker_name = "${terraform.workspace}-k8s-worker"
+    worker_name = "${cloudca_instance.worker_instance.name}"
   }
 }
 
@@ -235,12 +244,6 @@ resource "null_resource" "master_instance_setup" {
     content     = "${data.template_file.tf_config.rendered}"
     destination = "/home/${var.username}/tf.yaml"
   }
-
-  # copy the files in place
-  provisioner "file" {
-    source      = "templates/post_boot_config.sh"
-    destination = "/home/${var.username}/post_boot_config.sh"
-  }
   
   # copy the bash script in place
   provisioner "file" {
@@ -251,7 +254,6 @@ resource "null_resource" "master_instance_setup" {
   # make the script executable
   provisioner "remote-exec" {
     inline = [
-      "chmod +x /home/${var.username}/post_boot_config.sh",
       "chmod +x /home/${var.username}/k8s_master.sh",
       "./k8s_master.sh ${cloudca_instance.master_instance.private_ip} '${var.tf_pod_cidr}' '${var.tf_service_cidr}' '${local.token}'"
     ]
@@ -334,26 +336,26 @@ resource "null_resource" "master_finalize_setup" {
 
   # copy the files in place
   provisioner "file" {
-    source      = "templates/helm_consul_values.yaml"
+    content     = "${data.template_file.consul_config.rendered}"
     destination = "/home/${var.username}/helm_consul_values.yaml"
+  }
+
+  # copy the files in place
+  provisioner "file" {
+    source      = "templates/post_boot_config.sh"
+    destination = "/home/${var.username}/post_boot_config.sh"
   }
 
   # Setup a Local Storage PV, Install Helm, Init Helm, Get and Install Consul
   provisioner "remote-exec" {
     inline = [
-      "kubectl create -f local_storage_pv.yaml",
-      "curl https://raw.githubusercontent.com/helm/helm/master/scripts/get | bash",
-      "kubectl create serviceaccount --namespace kube-system tiller",
-      "kubectl create clusterrolebinding tiller-cluster-rule --clusterrole=cluster-admin --serviceaccount=kube-system:tiller",
-      "helm init --service-account tiller --history-max 200",
-      "git clone https://github.com/hashicorp/consul-helm.git",
-      "cd consul-helm",
-      "git checkout v0.6.0",
-      "sleep 5",
-      "while [ \"$(kubectl get pods -l name=tiller -n kube-system -o 'jsonpath={.items[0].status.conditions[?(@.type==\"Ready\")].status}')\" != 'True' ]; do echo 'waiting for tiller...'; sleep 2; done",
-      "helm install ./ -f /home/${var.username}/helm_consul_values.yaml"
+      "chmod +x /home/${var.username}/post_boot_config.sh",
+      "./post_boot_config.sh"
     ]
   }
+
+# "while [ \"$(kubectl get pods -l name=tiller -n kube-system -o 'jsonpath={.items[0].status.conditions[?(@.type==\"Ready\")].status}')\" != 'True' ]; do echo 'waiting for tiller...'; sleep 2; done",
+# "helm install ./ -f /home/${var.username}/helm_consul_values.yaml"
 
   # the ssh connection details for this null resource
   connection {

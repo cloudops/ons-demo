@@ -1,5 +1,5 @@
 global:
-  datacenter: dc1
+  datacenter: ${dc_name}
 
 ui:
   service:

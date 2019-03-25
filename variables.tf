@@ -65,7 +65,7 @@ variable "tf_repo" {
     default = "docker.io/opencontrailnightly"
 }
 variable "tf_release" {
-    default = "latest"
+    default = "master-588"
 }
 variable "tf_pod_cidr" {
     default = "10.32.0.0/12"
@@ -77,3 +77,7 @@ variable "tf_ip_fabric_cidr" {
     default = "10.64.0.0/12"
 }
 variable "tf_ui_password" {}
+
+variable "consul_dc_name" {
+    default = "dc1"
+}
