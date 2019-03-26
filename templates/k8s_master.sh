@@ -104,11 +104,15 @@ kubectl apply -f tf.yaml
 # sudo yum install -y epel-release
 # sudo yum install -y nginx
 # sudo vim /etc/nginx/conf.d/consul_ui.conf
+
 # server {
 #     listen 8080;
 
 #     location / {
-#         proxy_pass http://10.97.60.190:80;
+#         proxy_pass http://10.109.17.109:80;
+#         proxy_http_version 1.1;
+#         proxy_set_header Upgrade $http_upgrade;
+#         proxy_set_header Connection "Upgrade";
 #     }
 # }
 

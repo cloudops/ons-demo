@@ -206,7 +206,16 @@ data "template_file" "consul_config" {
   template = "${file("templates/helm_consul_values.yaml")}"
 
   vars {
-    dc_name = "${var.consul_dc_name}"
+    dc_name = "${terraform.workspace}"
+  }
+}
+
+# Consul license file generation
+data "template_file" "consul_license" {
+  template = "${file("templates/consul_license.yaml")}"
+
+  vars {
+    consul_license = "${base64encode(file("templates/consul_license.hclic"))}"
   }
 }
 
@@ -332,6 +341,12 @@ resource "null_resource" "master_finalize_setup" {
   provisioner "file" {
     content     = "${data.template_file.pv_config.rendered}"
     destination = "/home/${var.username}/local_storage_pv.yaml"
+  }
+
+  # copy the files in place
+  provisioner "file" {
+    content     = "${data.template_file.consul_license.rendered}"
+    destination = "/home/${var.username}/consul_license.yaml"
   }
 
   # copy the files in place

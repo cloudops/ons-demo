@@ -1,5 +1,6 @@
 global:
   datacenter: ${dc_name}
+  image: hashicorp/consul-enterprise:1.4.4-ent
 
 ui:
   service:
@@ -21,3 +22,6 @@ server:
   storage: 10Gi
   storageClass: local-storage
   connect: true
+  enterpriseLicense:
+    secretName: cloudops-consul-license
+    secretKey: consul-license

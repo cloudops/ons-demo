@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: cloudops-consul-license
+type: Opaque
+data:
+  consul-license: ${consul_license}

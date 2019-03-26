@@ -1,6 +1,7 @@
 .terraform
 .vscode
 key
+templates/consul_license.hclic
 templates/extra_key.pub
 terraform.tfstate.d
 terraform.tfstate

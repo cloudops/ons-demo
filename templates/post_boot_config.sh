@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
 
 kubectl create -f $HOME/local_storage_pv.yaml
+kubectl create -f $HOME/consul_license.yaml
 curl https://raw.githubusercontent.com/helm/helm/master/scripts/get | bash
 kubectl create serviceaccount --namespace kube-system tiller
 kubectl create clusterrolebinding tiller-cluster-rule --clusterrole=cluster-admin --serviceaccount=kube-system:tiller
 helm init --service-account tiller --history-max 200
 git clone https://github.com/hashicorp/consul-helm.git
 cd consul-helm
-git checkout v0.6.0
+git checkout v0.7.0
 helm template . -f $HOME/helm_consul_values.yaml > $HOME/consul.yaml
 sed -i "s/# Consul agents require a directory for data, even clients./dnsPolicy: ClusterFirstWithHostNet\n      hostNetwork: true\n      # Consul agents require a directory for data, even clients./g" $HOME/consul.yaml
 kubectl apply -f $HOME/consul.yaml
