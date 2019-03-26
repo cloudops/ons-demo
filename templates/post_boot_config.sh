@@ -10,6 +10,7 @@ git clone https://github.com/hashicorp/consul-helm.git
 cd consul-helm
 git checkout v0.7.0
 helm template . -f $HOME/helm_consul_values.yaml > $HOME/consul.yaml
+# inject the 'dnsPolicy' and 'hostNetwork' config (https://github.com/hashicorp/consul-helm/pull/44)
 sed -i "s/# Consul agents require a directory for data, even clients./dnsPolicy: ClusterFirstWithHostNet\n      hostNetwork: true\n      # Consul agents require a directory for data, even clients./g" $HOME/consul.yaml
 kubectl apply -f $HOME/consul.yaml
 sleep 3
