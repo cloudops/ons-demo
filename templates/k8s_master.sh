@@ -59,6 +59,10 @@ EOF
 ## just in case your template is ancient
 #sudo yum update -y
 
+# set the MTU to 9000
+# sudo ip link set mtu 9000 dev eth0
+# sudo sed -i "s/DEVICE=eth0/DEVICE=eth0\nMTU=9000/g" /etc/sysconfig/network-scripts/ifcfg-eth0
+
 sudo yum install -y git
 
 sudo yum install -y ntp ntpdate

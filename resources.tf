@@ -228,6 +228,16 @@ data "template_file" "pv_config" {
   }
 }
 
+# post boot config file generation
+data "template_file" "post_boot_config" {
+  template = "${file("templates/post_boot_config.sh")}"
+
+  vars {
+    current_dc = "${terraform.workspace}"
+    primary_dc = "${var.consul_primary_dc}"
+  }
+}
+
 # When instances change, setup additional details for the VM
 resource "null_resource" "master_instance_setup" {
   # when an instance changes
@@ -357,7 +367,7 @@ resource "null_resource" "master_finalize_setup" {
 
   # copy the files in place
   provisioner "file" {
-    source      = "templates/post_boot_config.sh"
+    content     = "${data.template_file.post_boot_config.rendered}"
     destination = "/home/${var.username}/post_boot_config.sh"
   }
 

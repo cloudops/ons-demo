@@ -12,6 +12,10 @@ git checkout v0.7.0
 helm template . -f $HOME/helm_consul_values.yaml > $HOME/consul.yaml
 # inject the 'dnsPolicy' and 'hostNetwork' config (https://github.com/hashicorp/consul-helm/pull/44)
 sed -i "s/# Consul agents require a directory for data, even clients./dnsPolicy: ClusterFirstWithHostNet\n      hostNetwork: true\n      # Consul agents require a directory for data, even clients./g" $HOME/consul.yaml
+if [ "${current_dc}" != "${primary_dc}" ]
+then
+    line=$(grep -n "^  name: release-name-consul-server-config" $HOME/consul.yaml | cut -f1 -d:); sed -i "$(($line+9))s/{}/{\"primary_datacenter\": \"${primary_dc}\"}/g" $HOME/consul.yaml
+fi
 kubectl apply -f $HOME/consul.yaml
 sleep 3
 

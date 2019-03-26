@@ -77,3 +77,5 @@ variable "tf_ip_fabric_cidr" {
     default = "10.64.0.0/12"
 }
 variable "tf_ui_password" {}
+
+variable "consul_primary_dc" {}
