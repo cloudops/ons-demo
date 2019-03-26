@@ -19,11 +19,11 @@ variable "api_url" {
 }
 
 variable "service_name" {
-    default = "compute-qc"
+    default = "compute-on"
 }
 
 variable "zone" {
-    default = "QC-2"
+    default = "ON-1"
 }
 
 # default network offering w/ LB
