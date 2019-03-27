@@ -62,10 +62,12 @@ variable "worker_root_volume_size_in_gb" {
 }
 
 variable "tf_repo" {
-    default = "docker.io/opencontrailnightly"
+    #default = "docker.io/opencontrailnightly"
+    default = "docker.io/tungstenfabric"
 }
 variable "tf_release" {
-    default = "master-588"
+    #default = "master-588"
+    default="r5.0.1"
 }
 variable "tf_pod_cidr" {
     default = "10.32.0.0/12"

@@ -56,7 +56,7 @@ sudo yum install -y docker
 sudo systemctl enable docker.service
 sudo service docker start
 
-sudo yum install -y kubernetes-cni-0.6.0-0 kubelet kubeadm kubectl
+sudo yum install -y kubelet kubeadm kubectl
 sudo systemctl enable kubelet && sudo systemctl start kubelet
 
 sudo sysctl -w net.bridge.bridge-nf-call-iptables=1
